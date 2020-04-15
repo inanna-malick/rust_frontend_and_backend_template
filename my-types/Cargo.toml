@@ -1,0 +1,8 @@
+[package]
+name = "my-types"
+version = "0.1.0"
+authors = ["inanna malick <inanna@recursion.wtf>"]
+edition = "2018"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }

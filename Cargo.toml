@@ -1,0 +1,11 @@
+[workspace]
+
+members = [
+    "my-server",
+    "my-types",
+    "my-frontend",
+]
+
+exclude = [
+  "my-frontend/wasm",
+]
