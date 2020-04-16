@@ -68,6 +68,7 @@ fn main() {
         })
         .collect::<Vec<String>>();
 
+    // FIXME: use phf after https://github.com/rust-lang/rust/issues/70584 is resolved
     output_lines.append(&mut vec![
         "lazy_static! {".to_string(),
         "static ref WASM: std::collections::HashMap<&'static str, &'static [u8]> = {".to_string(),
