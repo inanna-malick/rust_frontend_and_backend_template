@@ -4,14 +4,8 @@ version = "0.1.0"
 authors = ["inanna malick <inanna@recursion.wtf>"]
 edition = "2018"
 
-
-[features]
-embed-wasm = ["my-frontend"]
-
-minimal = []
-
 [dependencies]
-my-frontend = { path = "../my-frontend", optional = true }
+my-frontend = { path = "../my-frontend" }
 warp = "0.2.1"
 tokio = { version = "0.2.18", features = ["macros"] }
 tonic = "0.1.1"

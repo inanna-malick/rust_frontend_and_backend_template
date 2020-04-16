@@ -1,7 +1,6 @@
 #![deny(warnings)]
 
 use handlebars::Handlebars;
-#[cfg(feature = "embed-wasm")]
 use headers::HeaderMapExt;
 use my_types::{IncrementReq, IncrementResp};
 use serde::Serialize;
@@ -11,6 +10,7 @@ use std::{
 };
 use tokio::sync::RwLock;
 use warp::Filter;
+use serde_json::json;
 
 /// A serialized message to report in JSON format.
 #[derive(Serialize)]
@@ -39,9 +39,10 @@ async fn main() {
     }
 
     let index_route = warp::get().and(warp::path::end()).and_then(|| async move {
-        let counter = get_state().read().await;
+        let state = get_state();
+        let counter = state.read().await;
         let resp: Result<_, warp::Rejection> =
-            Ok(render_index("index.html", format!("{}", *counter)));
+            Ok(render_index(*counter));
         resp
     });
 
@@ -52,7 +53,8 @@ async fn main() {
         .and(warp::body::json())
         // .end() why is this commented out?
         .and_then(|req: IncrementReq| async move {
-            let mut counter = get_state().write().await;
+            let state = get_state();
+            let mut counter = state.write().await;
             *counter += req.increment_counter_by;
 
             let resp = IncrementResp {
@@ -63,20 +65,11 @@ async fn main() {
             resp
         });
 
-    // serve static content from some local path - for quicker development
-    #[cfg(not(feature = "embed-wasm"))]
-    let static_path = std::env::args()
-        .next()
-        .expect("expected relative path to static files (wasm, etc) as first argument");
-    #[cfg(not(feature = "embed-wasm"))]
-    let static_route = warp::get().and(warp::fs::dir(static_path));
-
     // serve static content embeded in binary
-    #[cfg(feature = "embed-wasm")]
     let static_route = warp::get()
         .and(warp::path::param::<String>()) // FIXME: does this work with nested paths?
         .map(
-            |path: String| match notes_frontend::get_static_asset(&path) {
+            |path: String| match my_frontend::get_static_asset(&path) {
                 None => Trivial::not_found(),
                 Some(blob) => {
                     let len = blob.len() as u64;
@@ -114,10 +107,8 @@ async fn main() {
 }
 
 // FIXME: should be omitable
-#[cfg(feature = "embed-wasm")]
 struct Trivial(hyper::Response<hyper::Body>);
 
-#[cfg(feature = "embed-wasm")]
 impl Trivial {
     fn not_found() -> Self {
         let r = hyper::Response::builder()
@@ -129,14 +120,13 @@ impl Trivial {
     }
 }
 
-#[cfg(feature = "embed-wasm")]
 impl warp::Reply for Trivial {
     fn into_response(self) -> warp::reply::Response {
         self.0
     }
 }
 
-pub fn render_index(template_name: &'static str, template_value: String) -> impl warp::Reply {
+pub fn render_index(counter_value: u32) -> impl warp::Reply {
     let hb: Handlebars = {
         let template = r#"<!doctype html>
             <html>
@@ -159,7 +149,7 @@ pub fn render_index(template_name: &'static str, template_value: String) -> impl
     };
 
     let body = hb
-        .render(template_name, &template_value)
+        .render("index.html", &json!({ "initial_counter_state": format!("{}", counter_value) }))
         .unwrap_or_else(|err| err.to_string());
 
     warp::reply::html(body)
