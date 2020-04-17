@@ -70,24 +70,24 @@ async fn main() {
         .and(warp::path::param::<String>()) // FIXME: does this work with nested paths?
         .map(
             |path: String| match my_frontend::get_static_asset(&path) {
-                None => Trivial::not_found(),
+                None => {
+                    hyper::Response::builder()
+                        .status(hyper::StatusCode::NOT_FOUND)
+                        .body(hyper::Body::empty())
+                        .unwrap()
+                }
                 Some(blob) => {
-                    let len = blob.len() as u64;
-
                     let body = hyper::Body::from(blob);
-
                     let mut resp = hyper::Response::new(body);
 
-                    let mime = mime_guess::from_path(path).first_or_octet_stream();
-
-                    resp.headers_mut().typed_insert(headers::ContentLength(len));
+                    let mime_type = mime_guess::from_path(path).first_or_octet_stream();
                     resp.headers_mut()
-                        .typed_insert(headers::ContentType::from(mime));
+                        .typed_insert(headers::ContentType::from(mime_type));
                     resp.headers_mut()
                         .typed_insert(headers::AcceptRanges::bytes());
+                    resp.headers_mut().typed_insert(headers::ContentLength(blob.len() as u64));
 
-                    Trivial(resp)
-                    // Ok(resp)
+                    resp
                 }
             },
         );
@@ -97,26 +97,6 @@ async fn main() {
     let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 8080);
     println!("running on localhost:8080");
     warp::serve(routes).run(socket).await;
-}
-
-// FIXME: should be omitable
-struct Trivial(hyper::Response<hyper::Body>);
-
-impl Trivial {
-    fn not_found() -> Self {
-        let r = hyper::Response::builder()
-            .status(hyper::StatusCode::NOT_FOUND)
-            .body(hyper::Body::empty())
-            .unwrap(); // ASSERTION: builder will never fail
-
-        Trivial(r)
-    }
-}
-
-impl warp::Reply for Trivial {
-    fn into_response(self) -> warp::reply::Response {
-        self.0
-    }
 }
 
 pub fn render_index(counter_value: u32) -> impl warp::Reply {
