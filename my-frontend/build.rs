@@ -1,9 +1,10 @@
+use cargo_web::{CargoWebOpts, DeployOpts};
 use ignore::Walk;
 use std::env;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
-use std::process::Command;
+use structopt::StructOpt;
 
 // NOTE: currently only tested with flat deploy dir
 fn main() {
@@ -17,27 +18,28 @@ fn main() {
     println!("dest path: {:?}", &dest_path);
 
     let current_dir = std::env::current_dir().unwrap();
+    env::set_current_dir(current_dir.join("wasm")).unwrap();
 
-    let mut cmd = Command::new("cargo");
-
-    cmd.arg("web")
-        .arg("deploy")
-        .arg("--output")
-        .arg(dest_path.to_str().unwrap());
-
-    if profile == "release" {
-        cmd.arg("--release");
+    //Build struct in DeployOpts is private so only way to create is this structopt method?
+    let opts = if profile == "release" {
+        DeployOpts::from_iter_safe(&[
+            "--release",
+            "--target=wasm32-unknown-unknown",
+            "--output",
+            dest_path.to_str().unwrap(),
+        ])
+    } else {
+        DeployOpts::from_iter_safe(&[
+            "--target=wasm32-unknown-unknown",
+            "--output",
+            dest_path.to_str().unwrap(),
+        ])
     }
+    .expect("expected hardcoded cargo-web args to be valid");
 
-    cmd.current_dir(current_dir.join("wasm"));
+    cargo_web::run(CargoWebOpts::Deploy(opts)).unwrap();
 
-    let output = cmd.output().expect("failed to execute cargo web deploy");
-
-    if !output.status.success() {
-        std::io::stdout().write_all(&output.stdout).unwrap();
-        std::io::stderr().write_all(&output.stderr).unwrap();
-        panic!("failed to build wasm files")
-    }
+    env::set_current_dir(current_dir).unwrap();
 
     let f_dest_path = Path::new(&out_dir).join("wasm_blobs.rs");
     let mut f = fs::File::create(&f_dest_path).unwrap();
