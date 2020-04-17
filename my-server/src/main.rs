@@ -73,15 +73,8 @@ async fn main() {
                 None => Trivial::not_found(),
                 Some(blob) => {
                     let len = blob.len() as u64;
-                    // TODO: arbitrary chunk size (1024), revisit later maybe (FIXME)
-                    let stream = futures::stream::iter(blob.chunks(1024).map(|x| {
-                        let res: Result<
-                            &'static [u8],
-                            Box<dyn std::error::Error + Send + Sync + 'static>,
-                        > = Ok(x);
-                        res
-                    }));
-                    let body = hyper::Body::wrap_stream(stream);
+
+                    let body = hyper::Body::from(blob);
 
                     let mut resp = hyper::Response::new(body);
 
