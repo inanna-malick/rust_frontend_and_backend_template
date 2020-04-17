@@ -9,3 +9,5 @@ lazy_static = "1.4.0"
 
 [build-dependencies]
 ignore = "0.4.14"
+cargo-web = "=0.6.26"
+structopt = "0.2"
