@@ -2,8 +2,8 @@ use cargo_web::{CargoWebOpts, DeployOpts};
 use ignore::Walk;
 use std::env;
 use std::fs;
-use std::io::Write;
-use std::path::Path;
+use std::io::{BufWriter, Write};
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 // NOTE: currently only tested with flat deploy dir
@@ -12,6 +12,7 @@ fn main() {
 
     let out_dir = env::var("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("wasm_blobs_output_dir");
+    // TODO: maybe not this? might wipe out resources, requiring extra recompile work?
     let _ = fs::remove_dir_all(&dest_path); // may already exist, nuke if that is the case
     fs::create_dir(&dest_path).unwrap();
 
@@ -42,55 +43,63 @@ fn main() {
     env::set_current_dir(current_dir).unwrap();
 
     let f_dest_path = Path::new(&out_dir).join("wasm_blobs.rs");
-    let mut f = fs::File::create(&f_dest_path).unwrap();
+    let f = fs::File::create(&f_dest_path).unwrap();
+    let mut file = BufWriter::new(f);
 
-    let blobs: Vec<(String, String, std::path::PathBuf)> = fs::read_dir(dest_path)
-        .unwrap()
-        .filter_map(|x| {
-            let path = x.unwrap().path();
-            if path.is_dir() {
-                // TODO: fail? idk, will handle nested case later if needed
-                None
-            } else {
-                let src = path.file_name().unwrap().to_str().unwrap().to_string();
-                let identifier = src.clone().replace(".", "_").to_uppercase();
-                Some((src, identifier, path))
+    write!(&mut file, "use phf::phf_map;\n").unwrap();
+
+    let blobs: Vec<(String, PathBuf)> = (0..)
+        .zip(Walk::new(dest_path.clone()))
+        .filter_map(|(idx, result)| {
+            // Each item yielded by the iterator is either a directory entry or an
+            // error, so either print the path or the error.
+            match result {
+                Ok(entry) => {
+                    if entry.metadata().unwrap().is_file() {
+                        Some((format!("ENTRY_{}", idx), entry.into_path()))
+                    } else {
+                        None
+                    }
+                }
+                Err(err) => {
+                    eprintln!("error traversing wasm directory: {}", err);
+                    None
+                }
             }
         })
         .collect();
 
-    let mut output_lines = blobs
-        .iter()
-        .map(|(_, identifier, dest_path)| {
-            format!(
-                r#"static {}: &'static [u8] = include_bytes!("{}");"#,
-                identifier,
-                dest_path.to_str().unwrap()
-            )
-        })
-        .collect::<Vec<String>>();
 
-    // FIXME: use phf after https://github.com/rust-lang/rust/issues/70584 is resolved
-    output_lines.append(&mut vec![
-        "lazy_static! {".to_string(),
-        "static ref WASM: std::collections::HashMap<&'static str, &'static [u8]> = {".to_string(),
-        "let mut m = std::collections::HashMap::new();".to_string(),
-    ]);
+    for (identifier, path) in &blobs {
+        write!(
+            &mut file,
+            "static {}: &'static [u8] = include_bytes!(\"{}\");\n",
+            identifier,
+            path.to_str().unwrap()
+        ).unwrap();
+    }
 
-    let mut hashmap_entries: Vec<String> = blobs
-        .iter()
-        .map(|(src_path, identifier, _)| format!(r#"m.insert("{}", {});"#, src_path, identifier))
-        .collect();
-    output_lines.append(&mut hashmap_entries);
-    output_lines.append(&mut vec![
-        "m".to_string(),
-        "};".to_string(),
-        "}".to_string(),
-    ]);
+    write!(
+        &mut file,
+        "static WASM: phf::Map<&'static str, &'static [u8]> =\n"
+    ).unwrap();
 
-    f.write_all(&output_lines.join("\n").into_bytes()).unwrap();
+    write!(&mut file, "phf_map! {{\n").unwrap();
 
-    //register rerun-if-changed hooks for all wasm directory entries not in gitignore
+    let dest_path = dest_path.to_str().unwrap();
+    for (identifier, path) in &blobs {
+        let key = &path.to_str().unwrap()[dest_path.len() + 1..];
+        write!(
+            &mut file,
+            "  \"{}\" => {},\n",
+            key,
+            identifier
+        ).unwrap();
+    }
+
+    write!(&mut file, "}};\n").unwrap();
+
+    // register rerun-if-changed hooks for all wasm directory entries not in gitignore
     for result in Walk::new("wasm") {
         // Each item yielded by the iterator is either a directory entry or an
         // error, so either print the path or the error.

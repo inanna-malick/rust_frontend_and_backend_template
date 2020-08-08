@@ -10,6 +10,7 @@ use std::{
 };
 use tokio::sync::RwLock;
 use warp::Filter;
+use warp::filters::path::FullPath;
 use serde_json::json;
 
 /// A serialized message to report in JSON format.
@@ -67,29 +68,34 @@ async fn main() {
 
     // serve static content embeded in binary
     let static_route = warp::get()
-        .and(warp::path::param::<String>()) // FIXME: does this work with nested paths?
+        .and(warp::path::full())
         .map(
-            |path: String| match my_frontend::get_static_asset(&path) {
-                None => {
-                    hyper::Response::builder()
-                        .status(hyper::StatusCode::NOT_FOUND)
-                        .body(hyper::Body::empty())
-                        .unwrap()
-                }
-                Some(blob) => {
-                    let body = hyper::Body::from(blob);
-                    let mut resp = hyper::Response::new(body);
+            |path: FullPath| {
+                // TODO: special case lookup for index if empty?
+                // drop leading '/' from path
+                let path = &path.as_str()[1..];
+                match my_frontend::get_static_asset(path) {
+                    None => {
+                        hyper::Response::builder()
+                            .status(hyper::StatusCode::NOT_FOUND)
+                            .body(hyper::Body::empty())
+                            .unwrap()
+                    }
+                    Some(blob) => {
+                        let body = hyper::Body::from(blob);
+                        let mut resp = hyper::Response::new(body);
 
-                    let mime_type = mime_guess::from_path(path).first_or_octet_stream();
-                    resp.headers_mut()
-                        .typed_insert(headers::ContentType::from(mime_type));
-                    resp.headers_mut()
-                        .typed_insert(headers::AcceptRanges::bytes());
-                    resp.headers_mut().typed_insert(headers::ContentLength(blob.len() as u64));
+                        let mime_type = mime_guess::from_path(path).first_or_octet_stream();
+                        resp.headers_mut()
+                            .typed_insert(headers::ContentType::from(mime_type));
+                        resp.headers_mut()
+                            .typed_insert(headers::AcceptRanges::bytes());
+                        resp.headers_mut().typed_insert(headers::ContentLength(blob.len() as u64));
 
-                    resp
+                        resp
+                    }
                 }
-            },
+            }
         );
 
     let routes = post_route.or(index_route).or(static_route);
@@ -99,6 +105,8 @@ async fn main() {
     warp::serve(routes).run(socket).await;
 }
 
+// TODO: consider removing this, or at least not including in library - complicates model
+// TODO: will need to special-case map lookup for index.html on empty fullpath (or maybe empty here == '/'? log fullpaths)
 pub fn render_index(counter_value: u32) -> impl warp::Reply {
     let hb: Handlebars = {
         let template = r#"<!doctype html>

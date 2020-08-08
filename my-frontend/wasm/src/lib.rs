@@ -4,13 +4,6 @@ use my_types::{IncrementReq, IncrementResp};
 use yew::services::fetch::{FetchService, FetchTask, Request, Response};
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender, format::Json};
 
-macro_rules! println {
-    ($($tt:tt)*) => {{
-        let msg = format!($($tt)*);
-        js! { @(no_return) console.log(@{ msg }) }
-    }}
-}
-
 #[derive(Debug)]
 pub struct State {
     counter_state: u32,
