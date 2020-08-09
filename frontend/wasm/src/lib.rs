@@ -1,6 +1,6 @@
 #![recursion_limit = "512"]
 
-use my_types::{IncrementReq, IncrementResp};
+use shared_types::{IncrementReq, IncrementResp};
 use yew::services::fetch::{FetchService, FetchTask, Request, Response};
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender, format::Json};
 

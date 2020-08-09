@@ -6,8 +6,9 @@ use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
-// NOTE: currently only tested with flat deploy dir
-fn main() {
+// FIXME: currently only tested with flat deploy dir
+// TODO: return result instead of failing inline?
+pub fn compile_wasm<X: AsRef<Path>>(cargo_web_dir: X) {
     let profile = std::env::var("PROFILE").expect("expected env var PROFILE for build.rs");
 
     let out_dir = env::var("OUT_DIR").unwrap();
@@ -19,7 +20,7 @@ fn main() {
     println!("dest path: {:?}", &dest_path);
 
     let current_dir = std::env::current_dir().unwrap();
-    env::set_current_dir(current_dir.join("wasm")).unwrap();
+    env::set_current_dir(current_dir.join(cargo_web_dir)).unwrap();
 
     //Build struct in DeployOpts is private so only way to create is this structopt method?
     let opts = if profile == "release" {
@@ -46,8 +47,6 @@ fn main() {
     let f = fs::File::create(&f_dest_path).unwrap();
     let mut file = BufWriter::new(f);
 
-    write!(&mut file, "use phf::phf_map;\n").unwrap();
-
     let blobs: Vec<(String, PathBuf)> = (0..)
         .zip(Walk::new(dest_path.clone()))
         .filter_map(|(idx, result)| {
@@ -69,35 +68,32 @@ fn main() {
         })
         .collect();
 
-
     for (identifier, path) in &blobs {
-        write!(
+        writeln!(
             &mut file,
-            "static {}: &'static [u8] = include_bytes!(\"{}\");\n",
+            "static {}: &'static [u8] = include_bytes!(\"{}\");",
             identifier,
             path.to_str().unwrap()
-        ).unwrap();
+        )
+        .unwrap();
     }
 
-    write!(
-        &mut file,
-        "static WASM: phf::Map<&'static str, &'static [u8]> =\n"
-    ).unwrap();
 
-    write!(&mut file, "phf_map! {{\n").unwrap();
+    let mut codegen = phf_codegen::Map::new();
 
     let dest_path = dest_path.to_str().unwrap();
     for (identifier, path) in &blobs {
         let key = &path.to_str().unwrap()[dest_path.len() + 1..];
-        write!(
-            &mut file,
-            "  \"{}\" => {},\n",
-            key,
-            identifier
-        ).unwrap();
+        codegen.entry(key, identifier);
     }
 
-    write!(&mut file, "}};\n").unwrap();
+    writeln!(
+        &mut file,
+        "static WASM: ::phf::Map<&'static str, &'static [u8]> =\n{};\n",
+        codegen.build()
+    ).unwrap();
+
+
 
     // register rerun-if-changed hooks for all wasm directory entries not in gitignore
     for result in Walk::new("wasm") {
@@ -115,3 +111,5 @@ fn main() {
 
     // panic!("afaik only way to get println output from build.rs is to fail here");
 }
+
+// TODO: macro so this can be invoked without needing build.rs? similar to grpc interface gen

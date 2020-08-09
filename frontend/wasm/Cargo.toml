@@ -5,7 +5,7 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0"
-my-types = { path = "../../my-types" }
+shared-types = { path = "../../shared-types" }
 serde = "1"
 serde_derive = "1"
 stdweb = "0.4"

@@ -1,17 +1,16 @@
 #![deny(warnings)]
 
 use handlebars::Handlebars;
-use headers::HeaderMapExt;
-use my_types::{IncrementReq, IncrementResp};
+use shared_types::{IncrementReq, IncrementResp};
 use serde::Serialize;
+use serde_json::json;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
 };
 use tokio::sync::RwLock;
-use warp::Filter;
 use warp::filters::path::FullPath;
-use serde_json::json;
+use warp::Filter;
 
 /// A serialized message to report in JSON format.
 #[derive(Serialize)]
@@ -42,8 +41,7 @@ async fn main() {
     let index_route = warp::get().and(warp::path::end()).and_then(|| async move {
         let state = get_state();
         let counter = state.read().await;
-        let resp: Result<_, warp::Rejection> =
-            Ok(render_index(*counter));
+        let resp: Result<_, warp::Rejection> = Ok(render_index(*counter));
         resp
     });
 
@@ -66,38 +64,25 @@ async fn main() {
             resp
         });
 
+
     // serve static content embeded in binary
-    let static_route = warp::get()
-        .and(warp::path::full())
-        .map(
-            |path: FullPath| {
-                // TODO: special case lookup for index if empty?
-                // drop leading '/' from path
-                let path = &path.as_str()[1..];
-                match my_frontend::get_static_asset(path) {
-                    None => {
-                        hyper::Response::builder()
-                            .status(hyper::StatusCode::NOT_FOUND)
-                            .body(hyper::Body::empty())
-                            .unwrap()
-                    }
-                    Some(blob) => {
-                        let body = hyper::Body::from(blob);
-                        let mut resp = hyper::Response::new(body);
+    let static_route = warp::get().and(warp::path::full()).map(|path: FullPath| {
+        match frontend::STATIC_LOOKUP.get(&path.as_str()) {
+            None => {
+                println!("lookup failed for {}", &path.as_str());
+                hyper::Response::builder()
+                    .status(hyper::StatusCode::NOT_FOUND)
+                    .body(hyper::Body::empty())
+                    .unwrap()
 
-                        let mime_type = mime_guess::from_path(path).first_or_octet_stream();
-                        resp.headers_mut()
-                            .typed_insert(headers::ContentType::from(mime_type));
-                        resp.headers_mut()
-                            .typed_insert(headers::AcceptRanges::bytes());
-                        resp.headers_mut().typed_insert(headers::ContentLength(blob.len() as u64));
-
-                        resp
-                    }
-                }
+            }            Some(resp) => {
+                println!("lookup passed for {}", &path.as_str());
+                resp
             }
-        );
+        }
+    });
 
+    // index_route overrides any static index files in static_route
     let routes = post_route.or(index_route).or(static_route);
 
     let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 8080);
@@ -113,8 +98,8 @@ pub fn render_index(counter_value: u32) -> impl warp::Reply {
             <html>
                 <head>
                     <meta charset="utf-8" />
-                    <title>My App</title>
-                    <link rel="stylesheet" href="/tree.css" >
+                    <title>Increment</title>
+                    <link rel="stylesheet" href="/css/app.css" >
                 </head>
                 <body>
                     <script>
@@ -130,7 +115,10 @@ pub fn render_index(counter_value: u32) -> impl warp::Reply {
     };
 
     let body = hb
-        .render("index.html", &json!({ "initial_counter_state": format!("{}", counter_value) }))
+        .render(
+            "index.html",
+            &json!({ "initial_counter_state": format!("{}", counter_value) }),
+        )
         .unwrap_or_else(|err| err.to_string());
 
     warp::reply::html(body)

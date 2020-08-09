@@ -1,11 +1,13 @@
 [workspace]
 
 members = [
-    "my-server",
-    "my-types",
-    "my-frontend",
+    "server",
+    "shared-types",
+    "frontend",
+    "embed-wasm",
+    "embed-wasm-build",
 ]
 
 exclude = [
-  "my-frontend/wasm",
+  "frontend/wasm",
 ]

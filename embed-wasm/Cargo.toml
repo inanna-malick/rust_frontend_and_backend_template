@@ -1,0 +1,11 @@
+[package]
+name = "embed-wasm"
+version = "0.1.0"
+authors = ["inanna malick <inanna@recursion.wtf>"]
+edition = "2018"
+
+[dependencies]
+phf = "0.8.0"
+headers = "0.3.1"
+mime_guess = "2.0"
+hyper = "0.13.2"

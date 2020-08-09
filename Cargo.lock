@@ -506,6 +506,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb1f6b1ce1c140482ea30ddd3335fc0024ac7ee112895426e0a629a6c20adfe3"
 
 [[package]]
+name = "embed-wasm"
+version = "0.1.0"
+dependencies = [
+ "headers",
+ "hyper 0.13.4",
+ "mime_guess 2.0.3",
+ "phf 0.8.0",
+]
+
+[[package]]
+name = "embed-wasm-build"
+version = "0.1.0"
+dependencies = [
+ "cargo-web",
+ "ignore",
+ "phf_codegen 0.8.0",
+ "structopt",
+]
+
+[[package]]
 name = "encoding_rs"
 version = "0.8.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -609,6 +629,15 @@ name = "foreign-types-shared"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
+
+[[package]]
+name = "frontend"
+version = "0.1.0"
+dependencies = [
+ "embed-wasm",
+ "embed-wasm-build",
+ "phf 0.8.0",
+]
 
 [[package]]
 name = "fsevent"
@@ -1275,7 +1304,7 @@ checksum = "216929a5ee4dd316b1702eedf5e74548c123d370f47841ceaac38ca154690ca3"
 dependencies = [
  "mime 0.2.6",
  "phf 0.7.24",
- "phf_codegen",
+ "phf_codegen 0.7.24",
  "unicase 1.4.2",
 ]
 
@@ -1368,43 +1397,6 @@ dependencies = [
  "safemem",
  "tempfile",
  "twoway",
-]
-
-[[package]]
-name = "my-frontend"
-version = "0.1.0"
-dependencies = [
- "cargo-web",
- "ignore",
- "lazy_static",
- "phf 0.8.0",
- "structopt",
-]
-
-[[package]]
-name = "my-server"
-version = "0.1.0"
-dependencies = [
- "bytes 0.5.4",
- "futures 0.3.4",
- "handlebars",
- "headers",
- "hyper 0.13.4",
- "mime_guess 2.0.3",
- "my-frontend",
- "my-types",
- "serde",
- "serde_json",
- "tokio 0.2.18",
- "tonic",
- "warp",
-]
-
-[[package]]
-name = "my-types"
-version = "0.1.0"
-dependencies = [
- "serde",
 ]
 
 [[package]]
@@ -1645,9 +1637,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3dfb61232e34fcb633f43d12c58f83c1df82962dcdfa565a4e866ffc17dafe12"
 dependencies = [
- "phf_macros",
  "phf_shared 0.8.0",
- "proc-macro-hack",
 ]
 
 [[package]]
@@ -1658,6 +1648,16 @@ checksum = "b03e85129e324ad4166b06b2c7491ae27fe3ec353af72e72cd1654c7225d517e"
 dependencies = [
  "phf_generator 0.7.24",
  "phf_shared 0.7.24",
+]
+
+[[package]]
+name = "phf_codegen"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cbffee61585b0411840d3ece935cce9cb6321f01c45477d30066498cd5e1a815"
+dependencies = [
+ "phf_generator 0.8.0",
+ "phf_shared 0.8.0",
 ]
 
 [[package]]
@@ -1678,20 +1678,6 @@ checksum = "17367f0cc86f2d25802b2c26ee58a7b23faeccf78a396094c13dced0d0182526"
 dependencies = [
  "phf_shared 0.8.0",
  "rand 0.7.3",
-]
-
-[[package]]
-name = "phf_macros"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f6fde18ff429ffc8fe78e2bf7f8b7a5a5a6e2a8b58bc5a9ac69198bbda9189c"
-dependencies = [
- "phf_generator 0.8.0",
- "phf_shared 0.8.0",
- "proc-macro-hack",
- "proc-macro2 1.0.10",
- "quote 1.0.3",
- "syn 1.0.17",
 ]
 
 [[package]]
@@ -2288,6 +2274,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "server"
+version = "0.1.0"
+dependencies = [
+ "bytes 0.5.4",
+ "frontend",
+ "futures 0.3.4",
+ "handlebars",
+ "headers",
+ "hyper 0.13.4",
+ "serde",
+ "serde_json",
+ "shared-types",
+ "tokio 0.2.18",
+ "tonic",
+ "warp",
+]
+
+[[package]]
 name = "sha-1"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2315,6 +2319,13 @@ dependencies = [
  "digest",
  "fake-simd",
  "opaque-debug",
+]
+
+[[package]]
+name = "shared-types"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

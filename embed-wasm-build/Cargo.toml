@@ -1,8 +1,11 @@
 [package]
-name = "my-types"
+name = "embed-wasm-build"
 version = "0.1.0"
 authors = ["inanna malick <inanna@recursion.wtf>"]
 edition = "2018"
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
+ignore = "0.4.14"
+cargo-web = "=0.6.26"
+structopt = "0.2"
+phf_codegen = "0.8.0"
