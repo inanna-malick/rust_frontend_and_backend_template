@@ -3,6 +3,9 @@ name = "embed-wasm"
 version = "0.1.0-alpha"
 authors = ["inanna malick <inanna@recursion.wtf>"]
 edition = "2018"
+description = "embed rust wasm build ouput in native binaries"
+license = "MIT"
+keywords = ["web", "webasm"]
 
 [dependencies]
 phf = "0.8.0"
