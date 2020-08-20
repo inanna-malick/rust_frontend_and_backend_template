@@ -6,8 +6,8 @@ use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
-// FIXME: currently only tested with flat deploy dir
-// TODO: return result instead of failing inline?
+
+/// Compile wasm using 
 pub fn compile_wasm<X: AsRef<Path>>(cargo_web_dir: X) {
     let profile = std::env::var("PROFILE").expect("expected env var PROFILE for build.rs");
 
@@ -93,17 +93,13 @@ pub fn compile_wasm<X: AsRef<Path>>(cargo_web_dir: X) {
         codegen.build()
     ).unwrap();
 
-
-
     // register rerun-if-changed hooks for all wasm directory entries not in gitignore
     for result in Walk::new("wasm") {
         // Each item yielded by the iterator is either a directory entry or an
         // error, so either print the path or the error.
         match result {
             Ok(entry) => {
-                if entry.metadata().unwrap().is_file() {
-                    println!("cargo:rerun-if-changed={}", entry.path().display());
-                }
+                println!("cargo:rerun-if-changed={}", entry.path().display());
             }
             Err(err) => panic!("error traversing wasm directory: {}", err),
         }
@@ -111,5 +107,3 @@ pub fn compile_wasm<X: AsRef<Path>>(cargo_web_dir: X) {
 
     // panic!("afaik only way to get println output from build.rs is to fail here");
 }
-
-// TODO: macro so this can be invoked without needing build.rs? similar to grpc interface gen

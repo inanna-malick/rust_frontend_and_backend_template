@@ -8,13 +8,19 @@ pub enum IndexHandling {
     NoIndexHandling,
 }
 
+
+/// Wraps a hashmap of static content generated at compile time and provides convenience
+/// functions for resolving static content given a path.
 pub struct StaticLookup {
     pub index_mode: IndexHandling,
     pub wasm: &'static phf::Map<&'static str, &'static [u8]>,
 }
 
 impl StaticLookup {
-    // path expected as `let x: http::uri::PathAndQuery = ..; x.as_str()`, omiting type to simplify interface
+    /// Given a path ('/', '/css/tree.css', etc) attempt to construct a 'hyper::Response'
+    /// using the static hashmap generated at compile time. Infers MIME type from path.
+    ///
+    /// path expected as `let x: http::uri::PathAndQuery = ..; x.as_str()`, omiting type to simplify interface
     pub fn get(&self, path: &str) -> Option<Response<Body>> {
         // drop leading '/' from path
         let path = &path[1..];
