@@ -1,6 +1,6 @@
 [package]
 name = "embed-wasm-build"
-version = "0.1.0"
+version = "0.1.0-alpha"
 authors = ["inanna malick <inanna@recursion.wtf>"]
 edition = "2018"
 
