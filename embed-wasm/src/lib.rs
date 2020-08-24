@@ -1,10 +1,22 @@
+#![deny(warnings, missing_docs)]
+//! This crate provides utilities for serving 'cargo-web' build output
+//! (rust compiled as wasm and associated html/css/etc files) included in
+//! native binaries as HTTP responses
+//!
+//! Designed for use with the [`embed-wasm-build` crate](https://crates.io/crates/embed-wasm-build).
+//! See [embed-wasm-example](https://github.com/inanna-malick/embed-wasm-example) for a full example.
+
 use headers::HeaderMapExt;
 use hyper::{Body, Response};
 
 
+/// Enum controlling how requests with path '/' are handled
+#[non_exhaustive]
 #[derive(PartialEq, Eq)]
 pub enum IndexHandling {
+    /// map requests to '/' to 'index.html'
     MapEmptyPathToIndex,
+    /// apply no special logic to requests to '/'
     NoIndexHandling,
 }
 
@@ -12,7 +24,11 @@ pub enum IndexHandling {
 /// Wraps a hashmap of static content generated at compile time and provides convenience
 /// functions for resolving static content given a path.
 pub struct StaticLookup {
+    /// Enum controlling how requests with path '/' are handled (only public for macro use)
+    #[doc(hidden)]
     pub index_mode: IndexHandling,
+    /// Reference to the static map containing binary content (only public for macro use)
+    #[doc(hidden)]
     pub wasm: &'static phf::Map<&'static str, &'static [u8]>,
 }
 

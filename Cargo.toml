@@ -4,7 +4,3 @@ members = [
     "embed-wasm",
     "embed-wasm-build",
 ]
-
-exclude = [
-  "frontend/wasm",
-]

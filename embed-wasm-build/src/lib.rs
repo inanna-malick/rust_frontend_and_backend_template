@@ -1,3 +1,11 @@
+#![deny(warnings, missing_docs)]
+//! This crate provides compile-time utilities for packaging 'cargo-web' build output
+//! (rust compiled as wasm and associated html/css/etc files) inside native binaries
+//! and is meant to be invoked from custom build.rs scripts
+//!
+//! Designed for use with the [`embed-wasm` crate](https://crates.io/crates/embed-wasm).
+//! See [embed-wasm-example](https://github.com/inanna-malick/embed-wasm-example) for a full example.
+
 use cargo_web::{CargoWebOpts, DeployOpts};
 use ignore::Walk;
 use std::env;
@@ -7,7 +15,9 @@ use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 
-/// Compile wasm using 
+/// Compile the cargo executable in the 'wasm' subdir using cargo-web and
+/// generate a static hashmap using 'phf' containing all static files
+/// output by the cargo-web build process
 pub fn compile_wasm<X: AsRef<Path>>(cargo_web_dir: X) {
     let profile = std::env::var("PROFILE").expect("expected env var PROFILE for build.rs");
 

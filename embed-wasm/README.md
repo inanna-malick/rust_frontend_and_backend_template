@@ -4,7 +4,12 @@
 
 Current version: 0.1.0-alpha
 
+This crate provides utilities for serving 'cargo-web' build output
+(rust compiled as wasm and associated html/css/etc files) included in
+native binaries as HTTP responses
 
+Designed for use with the [`embed-wasm-build` crate](https://crates.io/crates/embed-wasm-build).
+See [embed-wasm-example](https://github.com/inanna-malick/embed-wasm-example) for a full example.
 
 ## License
 
